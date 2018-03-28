@@ -41,7 +41,7 @@ filter_vcf <- function (x, min_depth = 4, max_depth = 800, min_mq = 20, samples_
   }
 
   # Censor variants with mappint quality < min_mq
-  mq <- extract.info(genotype_calls_missing, element = "MQ", as.numeric = TRUE)
+  mq <- extract.info(x, element = "MQ", as.numeric = TRUE)
   # bypass mapping quality filter if there are missing values in MQ
   # any NA values here would indicate denovo assembly
   if (is.na(sum(mq)) == TRUE) {
