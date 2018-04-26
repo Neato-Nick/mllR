@@ -41,7 +41,7 @@ filter_vcf <- function (x, min_depth = 4, max_depth = 800, min_mq = 20, samples_
   }
 
   # Censor variants with mappint quality < min_mq
-  mq <- extract.info(x, element = "MQ", as.numeric = TRUE)
+  mq <- extract.info(x.3, element = "MQ", as.numeric = TRUE)
   # bypass mapping quality filter if there are missing values in MQ
   # any NA values here would indicate denovo assembly
   if (is.na(sum(mq)) == TRUE) {
@@ -72,7 +72,7 @@ filter_vcf <- function (x, min_depth = 4, max_depth = 800, min_mq = 20, samples_
   dp <- extract.gt(x.6, element = "DP", as.numeric = TRUE)
   # Omit samples
   myMiss <- apply(dp, MARGIN = 2, function(y) {sum(is.na(y))})
-  myMiss <- myMiss / ncol(dp)
+  myMiss <- myMiss / nrow(dp)
   x.7 <- x.6
   x.7@gt <- x.7@gt[, c(TRUE, myMiss < samples_miss2)]
 
@@ -178,7 +178,8 @@ samples_filter <- function(x, lower_quant = 0.05, stat = 'median', filter_bot = 
 #' plot_violins(ultra_filtered_vcf)
 plot_violins <- function(x, samples_per_row = 10, fill_group_aesthetic = NULL) {
   dp <- vcfR::extract.gt(x, element = "DP", as.numeric = TRUE)
-  dpf <- reshape2::melt(dp, varnames=c('Index', 'Sample'), value.name = 'Depth', na.rm=TRUE)
+  dp <- dp[,sort.int(colSums(dp, na.rm = TRUE), decreasing = TRUE, index.return = TRUE)$ix]
+  dpf <- reshape2:::melt.array(dp, varnames=c('Index', 'Sample'), value.name = 'Depth', na.rm=TRUE)
   dpf_2 <- dpf[ dpf$Depth > 0,]
   # Now make violin plots by sample
   samples <- colnames(x@gt)[-1]
@@ -220,8 +221,8 @@ plot_violins <- function(x, samples_per_row = 10, fill_group_aesthetic = NULL) {
     myPlots[[i]] <- myPlots[[i]] + ggplot2::theme(axis.title.x = ggplot2::element_blank(),
                                          axis.text.x = ggplot2::element_text(angle = 30, hjust = 1))
     myPlots[[i]] <- myPlots[[i]] + ggplot2::scale_y_continuous(trans=scales::log2_trans(),
-                                                      breaks=c(1, 10, 100, 800),
-                                                      minor_breaks=c(1:10, 2:10*10, 2:8*100))
+                                                      breaks=c(1, 10, 100, 1000, 5000),
+                                                      minor_breaks=c(1:10, 2:10*10, 2:10*100, 2000, 3000, 4000))
     myPlots[[i]] <- myPlots[[i]] + ggplot2::theme( panel.grid.major.y=ggplot2::element_line(color = "#A9A9A9", size=0.6) )
     myPlots[[i]] <- myPlots[[i]] + ggplot2::theme( panel.grid.minor.y=ggplot2::element_line(color = "#C0C0C0", size=0.2) )
   }
