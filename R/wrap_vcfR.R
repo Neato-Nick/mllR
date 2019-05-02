@@ -10,6 +10,7 @@
 #' @param vars_miss Maximum percent missing data a variant can have before it gets omitted. Occurs after first wave of sample omission.
 #' @param top_95_quantile_filter Censor the 5th and 95th percentiles of genotype call depth or not.
 #' @param remove_nonpolymorphs After removing samples, some variants will no longer be polymorphic. These should be removed to not inflate the true number of variants.
+#' @param cleanup If TRUE (default), remove temporary VCFs from memory and perform garbage cleanup. Almost necessary for large VCFs (>100 MB)
 #' @return A filtered \code{vcfR} object.
 #' @keywords vcf filter
 #' @export
@@ -17,13 +18,17 @@
 #' filtered_vcf <- filter_vcf(unfiltered_vcf)
 #' filtered_vcf <- filter_vcf(unfiltered_vcf, samples_miss1 = 0.8, samples_miss2 = 0.4, vars_miss = 0.001)
 #'
-filter_vcf <- function (x, min_depth = 4, max_depth = 800, min_mq = 20, samples_miss1 = 0.9999, samples_miss2 = 0.7, vars_miss = 0.2, top_dp_quantile_filter = TRUE, remove_nonpolymorphs = TRUE) {
+filter_vcf <- function (x, min_depth = 4, max_depth = 800, min_mq = 20, samples_miss1 = 0.9999, samples_miss2 = 0.7, vars_miss = 0.2, top_dp_quantile_filter = TRUE, remove_nonpolymorphs = TRUE, cleanup = TRUE) {
   dp <- vcfR::extract.gt(x, element = "DP", as.numeric = TRUE)
   # Censor variants depth < 8 or > 100
   dp[dp < min_depth] <- NA
   dp[dp > max_depth] <- NA
   x.2 <- x
   x.2@gt[,-1][ is.na(dp) == TRUE] <- NA
+  if (cleanup) {
+    remove(x, dp)
+    gc()
+  }
 
   # Censor variants in top 95% quantile
   if (top_dp_quantile_filter == TRUE) {
@@ -39,6 +44,10 @@ filter_vcf <- function (x, min_depth = 4, max_depth = 800, min_mq = 20, samples_
   } else {
     x.3 <- x.2
   }
+  if (cleanup) {
+    remove(x.2, quants, dp2)
+    gc()
+  }
 
   # Censor variants with mappint quality < min_mq
   mq <- extract.info(x.3, element = "MQ", as.numeric = TRUE)
@@ -51,6 +60,10 @@ filter_vcf <- function (x, min_depth = 4, max_depth = 800, min_mq = 20, samples_
     x.4 <- x.3
     x.4@gt[,-1][ is.na(mq) == TRUE] <- NA
   }
+  if (cleanup) {
+    remove(x.3, mq)
+    gc()
+  }
 
   # Omit samples with > samples_miss1
   dp <- extract.gt(x.4, element = "DP", as.numeric = TRUE)
@@ -59,6 +72,10 @@ filter_vcf <- function (x, min_depth = 4, max_depth = 800, min_mq = 20, samples_
   myMiss <- myMiss / nrow(dp)
   x.5 <- x.4
   x.5@gt <- x.5@gt[, c(TRUE, myMiss < samples_miss1)]
+  if (cleanup) {
+    remove(x.4, myMiss, dp)
+    gc()
+  }
 
   # Omit variants with > vars_miss
   dp <- extract.gt(x.5, element = "DP", as.numeric = TRUE)
@@ -67,6 +84,10 @@ filter_vcf <- function (x, min_depth = 4, max_depth = 800, min_mq = 20, samples_
   myMiss <- myMiss / ncol(dp)
   x.6 <- x.5
   x.6 <- x.6[myMiss < vars_miss, ]
+  if (cleanup) {
+    remove(x.5, myMiss)
+    gc()
+  }
 
   # Omit samples with > samples_miss2
   dp <- extract.gt(x.6, element = "DP", as.numeric = TRUE)
@@ -75,6 +96,10 @@ filter_vcf <- function (x, min_depth = 4, max_depth = 800, min_mq = 20, samples_
   myMiss <- myMiss / nrow(dp)
   x.7 <- x.6
   x.7@gt <- x.7@gt[, c(TRUE, myMiss < samples_miss2)]
+  if (cleanup) {
+    remove(x.6, myMiss)
+    gc()
+  }
 
   # Now remove all variants that are no longer present
   # Measured by a minor allele count > 0
@@ -83,6 +108,8 @@ filter_vcf <- function (x, min_depth = 4, max_depth = 800, min_mq = 20, samples_
   } else {
     x.8 <- x.7
     x.8 <- x.8[is.polymorphic(x.8, na.omit = TRUE)]
+    remove(x.7)
+    gc()
     return(x.8)
   }
 }
@@ -227,4 +254,54 @@ plot_violins <- function(x, samples_per_row = 10, fill_group_aesthetic = NULL) {
     myPlots[[i]] <- myPlots[[i]] + ggplot2::theme( panel.grid.minor.y=ggplot2::element_line(color = "#C0C0C0", size=0.2) )
   }
   cowplot::plot_grid(plotlist = myPlots, nrow = myRows)
+}
+
+#' Calculate true number of missing genotypes in a vcfR object
+#'
+#' @param x A vcfR object
+#' @param pct Return value as a percent (out of 100) instead of a proportion (default)
+#' @keywords vcf missingness genotypes
+#' @return Proportion of missing genotypes
+#' @export
+#' @examples
+#' calc_missing_gt(vcf_example)
+calc_missing_gt <- function(x, pct = FALSE) {
+  vcf_gt <- extract.gt(x)
+  prop_missing_gt <- sum(is.na(vcf_gt))/(nrow(vcf_gt)*ncol(vcf_gt))
+  if (pct) return(prop_missing_gt*100)
+  else return(prop_missing_gt)
+}
+
+#' Filter VCF based on number of minor alleles in dataset
+#'
+#' @param x A vcfR object
+#' @param min_count Minimum number of times a variant's minor allele must be called to avoid being removed
+#' @param isGTmissing Remove all variants with missing data (default) or not (FALSE).
+#' @keywords vcf missingness MAF filter
+#' @return VCF filtered by minor allele count and by missingness
+#' @export
+#' @examples
+#' missingGT_maf_filter(vcf_example)
+missingGT_maf_filter <- function(x, min_count = 2, isGTmissing = TRUE) {
+  maf_matr <- vcfR::maf(x)
+  maf_df <- data.frame(maf_matr)
+  countslot <- maf_df$Count
+  names(countslot) <- rownames(maf_df)
+
+  # subsetting using count column of maf call
+  x_mincount <- x
+  x_mincount <- x_mincount[(countslot >= min_count),]
+
+  # return end VCF if want to get rid of all NA genotypes
+  if (isGTmissing == TRUE) {
+    maf <- vcfR::maf(x_mincount)
+    maf_df <- data.frame(maf)
+    naslot <- maf_df$NA.
+    x_nomissing <- x_mincount
+    x_nomissing <- x_nomissing[(naslot == 0),]
+    return(x_mincount[(naslot == 0),])
+  }
+  else {
+    return(x_mincount)
+  }
 }
