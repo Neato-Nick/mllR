@@ -106,19 +106,19 @@ pca_workflow <- function(x, pop_def, pop_map, filter_strata = TRUE) {
 #' Make phylogenetic trees colored according to strata
 #'
 #' @param x Preferably a genclone object, genlights sometimes break it. Must have strata
-#' @param formula Hierarchical formula to group the populations by in plots.
+#' @param formula Hierarchical formula to group the populations by in plots. Do not wrap in quotes... I think.
 #' @param name Used to label plot axes and titles.
-#' @param scale_quality What to color the tree tips by.
-#' @param vcf Original vcfR object, used to calculate statistics on
+#' @param scale_quality What to color the tree tips by. Use 'population' to color by any "formula" you set. Other options are: 'missing', 'median_depth', 'mean_depth', 'heterozygosity', and 'allele_depth' 
+#' @param vcf Original vcfR object, used to calculate statistics on. Be sure it's the same exact individuals and variants as the data in `x`.
 #' @param geo_tree Optionally supply your own tree instead of running poppr::aboot
 #' @param treeType Algorithm to make tree by. Make sure the package to use is loaded.
 #' @param dist Algorithm to calculate distance. Make sure the package to use is loaded.
 #' @param input_type Specify if a genclone or genlight is inputted
 #' @keywords genclone genind phylogeny ape
-#' @return Phylogenetic tree plots
+#' @return Phylogenetic tree plot
 #' @export
 #' @examples
-#' pca_workflow(ultra_filtered_genlight, 'Nursery', strata_defs)
+#' tree_workflow(ultra_filtered_genlight, ~Nursery, "Nursery of origin", "population", ultra_filtered_vcf)
 tree_workflow <- function(x, formula = NULL, name, scale_quality = 'population', vcf = NULL, geo_tree = NULL, treeType = 'upgma', dist = 'provesti.dist', input_type = 'genclone') {
   if (is.null(formula) == FALSE) {
     setPop(x) <- formula
