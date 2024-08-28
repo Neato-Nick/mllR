@@ -4,20 +4,28 @@
 \alias{tree_workflow}
 \title{Make phylogenetic trees colored according to strata}
 \usage{
-tree_workflow(x, formula = NULL, name, scale_quality = "population",
-  vcf = NULL, geo_tree = NULL, treeType = "upgma",
-  dist = "provesti.dist", input_type = "genclone")
+tree_workflow(
+  x,
+  formula = NULL,
+  name,
+  scale_quality = "population",
+  vcf = NULL,
+  geo_tree = NULL,
+  treeType = "upgma",
+  dist = "provesti.dist",
+  input_type = "genclone"
+)
 }
 \arguments{
 \item{x}{Preferably a genclone object, genlights sometimes break it. Must have strata}
 
-\item{formula}{Hierarchical formula to group the populations by in plots.}
+\item{formula}{Hierarchical formula to group the populations by in plots. Do not wrap in quotes... I think.}
 
 \item{name}{Used to label plot axes and titles.}
 
-\item{scale_quality}{What to color the tree tips by.}
+\item{scale_quality}{What to color the tree tips by. Use 'population' to color by any "formula" you set. Other options are: 'missing', 'median_depth', 'mean_depth', 'heterozygosity', and 'allele_depth'}
 
-\item{vcf}{Original vcfR object, used to calculate statistics on}
+\item{vcf}{Original vcfR object, used to calculate statistics on. Be sure it's the same exact individuals and variants as the data in `x`.}
 
 \item{geo_tree}{Optionally supply your own tree instead of running poppr::aboot}
 
@@ -28,13 +36,13 @@ tree_workflow(x, formula = NULL, name, scale_quality = "population",
 \item{input_type}{Specify if a genclone or genlight is inputted}
 }
 \value{
-Phylogenetic tree plots
+Phylogenetic tree plot
 }
 \description{
 Make phylogenetic trees colored according to strata
 }
 \examples{
-pca_workflow(ultra_filtered_genlight, 'Nursery', strata_defs)
+tree_workflow(ultra_filtered_genlight, ~Nursery, "Nursery of origin", "population", ultra_filtered_vcf)
 }
 \keyword{ape}
 \keyword{genclone}

@@ -4,8 +4,14 @@
 \alias{samples_filter}
 \title{Filter out samples of a vcfR object based on depth}
 \usage{
-samples_filter(x, lower_quant = 0.05, stat = "median", filter_bot = TRUE,
-  filter_top = FALSE, remove_nonpolymorphs = TRUE)
+samples_filter(
+  x,
+  lower_quant = 0.05,
+  stat = "median",
+  filter_bot = TRUE,
+  filter_top = FALSE,
+  remove_nonpolymorphs = TRUE
+)
 }
 \arguments{
 \item{x}{A vcfR object}

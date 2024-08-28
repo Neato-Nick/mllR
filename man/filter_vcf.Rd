@@ -4,9 +4,18 @@
 \alias{filter_vcf}
 \title{Filter a vcfR object}
 \usage{
-filter_vcf(x, min_depth = 4, max_depth = 800, min_mq = 20,
-  samples_miss1 = 0.9999, samples_miss2 = 0.7, vars_miss = 0.2,
-  top_dp_quantile_filter = TRUE, remove_nonpolymorphs = TRUE)
+filter_vcf(
+  x,
+  min_depth = 4,
+  max_depth = 800,
+  min_mq = 20,
+  samples_miss1 = 0.9999,
+  samples_miss2 = 0.7,
+  vars_miss = 0.2,
+  top_dp_quantile_filter = TRUE,
+  remove_nonpolymorphs = TRUE,
+  cleanup = TRUE
+)
 }
 \arguments{
 \item{x}{a vcfR object}
@@ -24,6 +33,8 @@ filter_vcf(x, min_depth = 4, max_depth = 800, min_mq = 20,
 \item{vars_miss}{Maximum percent missing data a variant can have before it gets omitted. Occurs after first wave of sample omission.}
 
 \item{remove_nonpolymorphs}{After removing samples, some variants will no longer be polymorphic. These should be removed to not inflate the true number of variants.}
+
+\item{cleanup}{If TRUE (default), remove temporary VCFs from memory and perform garbage cleanup. Almost necessary for large VCFs (>100 MB)}
 
 \item{top_95_quantile_filter}{Censor the 5th and 95th percentiles of genotype call depth or not.}
 }
